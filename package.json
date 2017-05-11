@@ -1,0 +1,15 @@
+{
+  "name": "naive-bayes",
+  "version": "1.0.0",
+  "description": "Naive Bayes implementation for text sentiment analysis.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^7.0.18",
+    "tsc": "^1.20150623.0"
+  }
+}

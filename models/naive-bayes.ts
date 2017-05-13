@@ -1,117 +1,113 @@
-import {Word} from './word'
-import {DocClass} from './document-class'
+import * as fs from 'fs'
+interface TokenOccurrence {
+  label: string
+  docCount: number
+  tokenCount: number
+  tokenInfo: {
+    token: string;
+    occurrence: number;
+  }[]
+}
 
 export class NaiveBayesClassifier {
-  private _words: Set<Word>
-  private _docClasses: Set<DocClass>
+  private _tokenOccurrenceObject: TokenOccurrence[]
+  private _documentCount: number
 
-  constructor() {
-    this._words = new Set()
-    this._docClasses = new Set()
+  private constructor() {
+    this._tokenOccurrenceObject = []
+    this._documentCount = 0
   }
 
   public train(document: string, label: string) {
-    let words = this.extractWordsFromDocument(document)
+    const words = this.extractWordsFromDocument(document)
+    let labelIndex: number = this._tokenOccurrenceObject.findIndex(el => el.label == label)
 
-    if (!this.labelExists(label)) {
-      this._docClasses.add(new DocClass(label))
+    this._documentCount++
+
+    if (labelIndex > -1) {
+      this._tokenOccurrenceObject[labelIndex].docCount++
+    } else {
+      this._tokenOccurrenceObject.push({
+        label,
+        docCount: 1,
+        tokenInfo: [],
+        tokenCount: 0,
+      })
+      labelIndex = this._tokenOccurrenceObject.length - 1
     }
 
-    this.updateDocCount(label)
-
     words.forEach(word => {
-      if (!this.wordExists(word)) {
-        this._words.add(new Word(word))
+      const wordIndex = this._tokenOccurrenceObject[labelIndex].tokenInfo.findIndex(tokenInfo => tokenInfo.token == word)
+      if (wordIndex > -1) {
+        this._tokenOccurrenceObject[labelIndex].tokenInfo[wordIndex].occurrence++
+      } else {
+        this._tokenOccurrenceObject[labelIndex].tokenInfo.push({token: word, occurrence: 1})
       }
-    })
-
-    this.filterWordObjects(words).forEach(word => {
-      word.addWordToClass(label)
+      this._tokenOccurrenceObject[labelIndex].tokenCount++
     })
   }
 
+  public toString() {
+    return JSON.stringify(this)
+  }
+
+  public static create(path: string): NaiveBayesClassifier {
+    const instance: NaiveBayesClassifier = new NaiveBayesClassifier
+    if (fs.existsSync(path)) {
+      const properties: NaiveBayesClassifier = JSON.parse(fs.readFileSync(path, 'utf-8').toString())
+      instance._documentCount = properties._documentCount
+      instance._tokenOccurrenceObject = properties._tokenOccurrenceObject
+    }
+    return instance
+  }
+
+  public toFile(path: string) {
+    fs.writeFileSync(path, this, 'utf-8')
+  }
+
   public classify(document: string): string {
-    let words: string[] = this.extractWordsFromDocument(document)
-    let filteredWords = this.filterWordObjects(words)
-    let probabilities: { label: string, value: number }[] = []
-    let totalWords = this._words.size
-    let totalDocs = this.totalDocCount()
+    const words = this.extractWordsFromDocument(document)
+    const sumOfTokens: any = {}
+    let probabilities: any = {}
 
-    this._docClasses.forEach(docClass => {
-      let probability: number = 1
-      let prior: number = docClass.priorProbability(totalDocs)
+    this._tokenOccurrenceObject.forEach(el => sumOfTokens[el.label] = this.allTokenOccurrence(el.label))
+    this._tokenOccurrenceObject.forEach(el => probabilities[el.label] = 0)
 
-      filteredWords.forEach(word => {
-        probability *= word.probabilityForLabel(docClass.label)
-        /*/ word.probabilityForEvidence(totalWords)*/
+    this._tokenOccurrenceObject.forEach(tokenOccurrence => {
+      const label = tokenOccurrence.label
+      const tokens = []
+      tokenOccurrence.tokenInfo.forEach(tokenInfo => tokens[tokenInfo.token] = tokenInfo.occurrence)
+
+      words.forEach(word => {
+        const prob = tokenOccurrence[word] ? (tokenOccurrence[word] + 1) : 1
+        probabilities[label] += Math.log(prob) - Math.log(sumOfTokens[label] + tokenOccurrence.tokenCount)
       })
 
-      probabilities.push({label: docClass.label, value: probability * prior})
+      probabilities[label] += Math.log(tokenOccurrence.docCount) - Math.log(this._documentCount)
     })
 
     console.log(probabilities)
 
-    let maxLabel = probabilities[0].label
-    let maxVal = probabilities[0].value
-    for (let prob of probabilities) {
-      if (prob.value > maxVal) {
-        maxVal = prob.value
-        maxLabel = prob.label
+    return this.maxProbability(probabilities)
+  }
+
+  private maxProbability(probabilities: any): string {
+    let maxLabel = ''
+    let maxVal = 0
+    for (let key in probabilities) {
+      if (probabilities.hasOwnProperty(key)) {
+        if (Math.abs(probabilities[key]) > maxVal) {
+          maxVal = Math.abs(probabilities[key])
+          maxLabel = key
+        }
       }
     }
-
-    console.log('max label', maxLabel)
 
     return maxLabel
   }
 
-  private totalDocCount(): number {
-    let total: number = 0
-
-    this._docClasses.forEach(docClass => total += docClass.totalDocuments)
-
-    return total
-  }
-
-  private labelExists(label: string): boolean {
-    for (let docClass of this._docClasses) {
-      if (docClass.label == label) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private wordExists(word: string): boolean {
-    for (let w of this._words) {
-      if (w.text == word) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private updateDocCount(label: string) {
-    for (let docClass of this._docClasses) {
-      if (docClass.label == label) {
-        docClass.addDoc()
-        return
-      }
-    }
-  }
-
-  private filterWordObjects(words: string[]): Set<Word> {
-    let filteredWords = new Set()
-
-    this._words.forEach(word => {
-      if (words.indexOf(word.text) > -1) {
-        filteredWords.add(word)
-        console.log(`filtered ${word.text}`)
-      }
-      console.log(`all: ${word.text}`)
-    })
-
-    return filteredWords
+  private allTokenOccurrence(label: string): number {
+    return this._tokenOccurrenceObject.find(el => el.label == label).tokenCount
   }
 
   private extractWordsFromDocument(document: string): string[] {

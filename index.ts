@@ -29,28 +29,6 @@ Usage:
 '--train' or '-t' - read train corpus and train the classifier
 '--write-out' or '-w' - save classifier to './export' folder
 '--help' or '-h' - writes this help message`)
-} else if (args.has('--wiki')) {
-  fs.readdirSync('./data/test').forEach(tag => {
-    fs.readdir(`./data/test/${tag}`, (err, files) => {
-      if (err) {
-        throw err
-      }
-      files.forEach(file => {
-        fs.readFile(`./data/test/${tag}/${file}`, (err, data) => {
-          if (err) {
-            throw err
-          }
-          let text = data.toString('utf-8').split('\n')
-          text[0] = tag
-          fs.writeFile(`./data/test/${tag}/${file}`, text.join('\n'), (err) => {
-            if (err) {
-              throw err
-            }
-          })
-        })
-      })
-    })
-  })
 } else {
   const lineReader = readline.createInterface(<any>{
     input: process.stdin,

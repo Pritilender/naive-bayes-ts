@@ -4,12 +4,16 @@
   "description": "Naive Bayes implementation for text sentiment analysis.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "run": "tsc",
+    "watch": "tsc --watch"
   },
-  "author": "",
+  "author": "Mihajlo Ilijic",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^7.0.18",
-    "tsc": "^1.20150623.0"
-  }
+    "stemmer": "^1.0.0",
+    "typescript": "^2.3.2"
+  },
+  "dependencies": {},
+  "repository": "https://www.github.com/Pritilender/naive-bayes-ts"
 }

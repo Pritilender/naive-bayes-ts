@@ -1,120 +1,123 @@
-import {Word} from './word';
-import {DocClass} from './document-class';
+import {Word} from './word'
+import {DocClass} from './document-class'
 
 export class NaiveBayesClassifier {
-    private _words: Set<Word>;
-    private _docClasses: Set<DocClass>;
+  private _words: Set<Word>
+  private _docClasses: Set<DocClass>
 
-    constructor() {
-        this._words = new Set();
-        this._docClasses = new Set();
+  constructor() {
+    this._words = new Set()
+    this._docClasses = new Set()
+  }
+
+  public train(document: string, label: string) {
+    let words = this.extractWordsFromDocument(document)
+
+    if (!this.labelExists(label)) {
+      this._docClasses.add(new DocClass(label))
     }
 
-    public train(document: string, label: string) {
-        let words = this.extractWordsFromDocument(document);
+    this.updateDocCount(label)
 
-        if (!this.labelExists(label)) {
-            this._docClasses.add(new DocClass(label));
-        }
+    words.forEach(word => {
+      if (!this.wordExists(word)) {
+        this._words.add(new Word(word))
+      }
+    })
 
-        this.updateDocCount(label);
+    this.filterWordObjects(words).forEach(word => {
+      word.addWordToClass(label)
+    })
+  }
 
-        words.forEach(word => {
-            if (!this.wordExists(word)) {
-                this._words.add(new Word(word));
-            }
-        });
+  public classify(document: string): string {
+    let words: string[] = this.extractWordsFromDocument(document)
+    let filteredWords = this.filterWordObjects(words)
+    let probabilities: { label: string, value: number }[] = []
+    let totalWords = this._words.size
+    let totalDocs = this.totalDocCount()
 
-        this.filterWordObjects(words).forEach(word => {
-            word.addWordToClass(label);
-        })
+    this._docClasses.forEach(docClass => {
+      let probability: number = 1
+      let prior: number = docClass.priorProbability(totalDocs)
+
+      filteredWords.forEach(word => {
+        probability *= word.probabilityForLabel(docClass.label)
+        /*/ word.probabilityForEvidence(totalWords)*/
+      })
+
+      probabilities.push({label: docClass.label, value: probability * prior})
+    })
+
+    console.log(probabilities)
+
+    let maxLabel = probabilities[0].label
+    let maxVal = probabilities[0].value
+    for (let prob of probabilities) {
+      if (prob.value > maxVal) {
+        maxVal = prob.value
+        maxLabel = prob.label
+      }
     }
 
-    public classify(document: string): string {
-        let words: string[] = this.extractWordsFromDocument(document);
-        let filteredWords = this.filterWordObjects(words);
-        let probabilities: { label: string, value: number }[] = [];
-        let totalWords = this._words.size;
-        let totalDocs = this.totalDocCount();
+    console.log('max label', maxLabel)
 
-        this._docClasses.forEach(docClass => {
-            let probability: number = 1;
-            let prior: number = docClass.priorProbability(totalDocs);
+    return maxLabel
+  }
 
-            filteredWords.forEach(word => {
-                probability *= word.probabilityForLabel(docClass.label); /*/ word.probabilityForEvidence(totalWords);*/
-            });
+  private totalDocCount(): number {
+    let total: number = 0
 
-            probabilities.push({label: docClass.label, value: probability * prior});
-        });
+    this._docClasses.forEach(docClass => total += docClass.totalDocuments)
 
-        console.log(probabilities);
+    return total
+  }
 
-        let maxLabel = probabilities[0].label;
-        let maxVal = probabilities[0].value;
-        for (let prob of probabilities) {
-            if (prob.value > maxVal) {
-                maxVal = prob.value;
-                maxLabel = prob.label;
-            }
-        }
-
-        console.log('max label', maxLabel);
-
-        return maxLabel;
+  private labelExists(label: string): boolean {
+    for (let docClass of this._docClasses) {
+      if (docClass.label == label) {
+        return true
+      }
     }
+    return false
+  }
 
-    private totalDocCount(): number {
-        let total: number = 0;
-
-        this._docClasses.forEach(docClass => total += docClass.totalDocuments);
-
-        return total;
+  private wordExists(word: string): boolean {
+    for (let w of this._words) {
+      if (w.text == word) {
+        return true
+      }
     }
+    return false
+  }
 
-    private labelExists(label: string): boolean {
-        for (let docClass of this._docClasses) {
-            if (docClass.label == label) {
-                return true;
-            }
-        }
-        return false;
+  private updateDocCount(label: string) {
+    for (let docClass of this._docClasses) {
+      if (docClass.label == label) {
+        docClass.addDoc()
+        return
+      }
     }
+  }
 
-    private wordExists(word: string): boolean {
-        for (let w of this._words) {
-            if (w.text == word) {
-                return true;
-            }
-        }
-        return false;
-    }
+  private filterWordObjects(words: string[]): Set<Word> {
+    let filteredWords = new Set()
 
-    private updateDocCount(label: string) {
-        for (let docClass of this._docClasses) {
-            if (docClass.label == label) {
-                docClass.addDoc();
-                return;
-            }
-        }
-    }
+    this._words.forEach(word => {
+      if (words.indexOf(word.text) > -1) {
+        filteredWords.add(word)
+        console.log(`filtered ${word.text}`)
+      }
+      console.log(`all: ${word.text}`)
+    })
 
-    private filterWordObjects(words: string[]): Set<Word> {
-        let filteredWords = new Set();
+    return filteredWords
+  }
 
-        this._words.forEach(word => {
-            if (words.indexOf(word.text) > -1) {
-                filteredWords.add(word);
-            }
-        });
-
-        return filteredWords;
-    }
-
-    private extractWordsFromDocument(document: string): string[] {
-        let words: string[] = document.toLowerCase()
-            .split(' ');
-        words = words.map(word => word.replace(/\W/g, '').trim());
-        return words;
-    }
+  private extractWordsFromDocument(document: string): string[] {
+    let words: string[] = document.toLowerCase()
+      .split(' ')
+    words = words.map(word => word.replace(/\W/g, '').trim())
+    return words
+  }
 }

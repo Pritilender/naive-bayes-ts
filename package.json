@@ -4,8 +4,9 @@
   "description": "Naive Bayes implementation for text sentiment analysis.",
   "main": "index.js",
   "scripts": {
-    "run": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "build": "tsc",
+    "run": "node index.js"
   },
   "author": "Mihajlo Ilijic",
   "license": "ISC",

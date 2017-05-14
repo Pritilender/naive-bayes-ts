@@ -1,4 +1,4 @@
-import {NaiveBayesClassifier} from './models/naive-bayes'
+import {NaiveBayesClassifier} from './naive-bayes'
 const fs = require('fs')
 const readline = require('readline')
 

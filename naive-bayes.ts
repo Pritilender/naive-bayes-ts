@@ -1,5 +1,6 @@
 const fs = require('fs')
 const stemmer = require('stemmer')
+const uniq = require('lodash.uniq')
 
 interface DocumentLabelInfo {
   label: string
@@ -14,7 +15,7 @@ interface DocumentLabelInfo {
 interface ClassifierOptions {
   presence?: boolean
   bigrams?: boolean
-  useNegative?: boolean // only if bigrams is false
+  useNegative?: boolean
 }
 
 export class NaiveBayesClassifier {
@@ -62,15 +63,9 @@ export class NaiveBayesClassifier {
     this._totalDocumentCount++
     this._labelsAndInfo[labelIndex].documentCount++
 
-    if (!(this._totalDocumentCount % 1000)) {
-      console.log('total docs', this._totalDocumentCount)
+    for (let i = 0; i < words.length; i++) {
+      this.addWordInLabel(words[i], labelIndex)
     }
-
-    words.forEach(word => {
-      const wordIndex: number = this.addWordInLabel(word, labelIndex)
-      this._labelsAndInfo[labelIndex].wordInfo[wordIndex].occurrence++
-      this._labelsAndInfo[labelIndex].wordCount++
-    })
   }
 
   private addWordInLabel(word: string, labelIndex: number): number {
@@ -81,9 +76,13 @@ export class NaiveBayesClassifier {
     if (wordIndex == -1) {
       this._labelsAndInfo[labelIndex]
         .wordInfo
-        .push({word: word, occurrence: 0})
+        .push({word: word, occurrence: 1})
       wordIndex = this._labelsAndInfo[labelIndex].wordInfo.length - 1
       this._vocabulary.add(word)
+      this._labelsAndInfo[labelIndex].wordCount++
+    } else if (!this._presence) {
+      this._labelsAndInfo[labelIndex].wordInfo[wordIndex].occurrence++
+      this._labelsAndInfo[labelIndex].wordCount++
     }
 
     return wordIndex
@@ -132,10 +131,24 @@ export class NaiveBayesClassifier {
   }
 
   private extractWordsFromDocument(document: string): string[] {
-    let words: string[] = document.toLowerCase()
-      .split(' ')
-    // words = words.map(word => stemmer(word.replace(/\W/g, '').trim())
-    words = words.map(word => word.replace(/\W/g, '').trim())
+    let words: string[] = document.split(' ')
+
+    if (this._presence) {
+      words = uniq(words)
+    }
+
+    for (let i = 0; i < words.length; i++) {
+      words[i] = words[i].toLowerCase()
+      words[i] = words[i].trim()
+
+      if (this._useNegative && words[i-1] && words[i-1].match(/(n't|not)$/)) {
+        if (words[i].match(/\W$/) != null) {
+          words[i] = `NOT_${words[i]}`
+        }
+      }
+
+      words[i] = words[i].replace(/\W/g, '')
+    }
 
     if (this._bigrams) {
       let bigramWords = []
@@ -149,19 +162,6 @@ export class NaiveBayesClassifier {
       }
 
       words = bigramWords
-    } else if (this._useNegative) {
-      words = words.map((word, i) => {
-        const prev = words[i-1]
-        if (prev) {
-          word = prev.endsWith(`nt`) || prev.endsWith('not') ? `NOT_${word}` : word
-        }
-        return word
-      })
-    }
-
-    if (this._presence) {
-      const helperSet = new Set(words)
-      words = [...helperSet]
     }
 
     return words

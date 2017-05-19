@@ -23,15 +23,6 @@ const readData = (funct: Function, folderPath: string, top: number = 25000) => {
   })
 }
 
-const trainClassifier = (classifier: NaiveBayesClassifier) => (doc: string) => {
-  if (doc != ``) {
-    let firstSpace = doc.indexOf('\t')
-    let label = doc.substring(0, firstSpace)
-    let text = doc.slice(firstSpace + 1)
-    classifier.train(text, label)
-  }
-}
-
 const trainClassifiers = (classifiers: NaiveBayesClassifier[]) => (doc: string) => {
   if (doc != ``) {
     let firstSpace = doc.indexOf('\t')
@@ -137,7 +128,6 @@ Usage:
 
   if (args.has('--write-out') || args.has('-w')) {
 
-    // WRITE OUT
     bayesClassifiers.forEach(el => {
       console.log('writing out', el.path)
       el.classifier.toFile(el.path)
@@ -149,7 +139,6 @@ Usage:
 
   if (args.has('--stats')) {
 
-    // STATS
     bayesClassifiers.forEach(el => {
       console.log('statistics...', el.path)
       stats(el.classifier, el.path)
@@ -162,9 +151,7 @@ Usage:
       if (line == 'q') {
         lineReader.close()
       } else {
-        // TODO
-        // const docClass = unigramFreqBayes.classify(line)
-        // console.log(`Document class is ${docClass}.`)
+        bayesClassifiers.forEach(el => console.log(`Document class is ${el.classifier.classify(line)}`))
         lineReader.prompt()
       }
     })

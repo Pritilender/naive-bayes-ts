@@ -12,7 +12,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^7.0.18",
-    "stemmer": "^1.0.0",
     "typescript": "^2.3.2"
   },
   "dependencies": {},

@@ -61,7 +61,6 @@ export class NaiveBayesClassifier {
     const labelIndex = this.addLabel(label)
 
     this._totalDocumentCount++
-    this._labelsAndInfo[labelIndex].documentCount++
 
     for (let i = 0; i < words.length; i++) {
       this.addWordInLabel(words[i], labelIndex)
@@ -80,7 +79,7 @@ export class NaiveBayesClassifier {
       wordIndex = this._labelsAndInfo[labelIndex].wordInfo.length - 1
       this._vocabulary.add(word)
       this._labelsAndInfo[labelIndex].wordCount++
-    } else if (!this._presence) {
+    } else {
       this._labelsAndInfo[labelIndex].wordInfo[wordIndex].occurrence++
       this._labelsAndInfo[labelIndex].wordCount++
     }
@@ -94,11 +93,13 @@ export class NaiveBayesClassifier {
     if (labelIndex == -1) {
       this._labelsAndInfo.push({
         label,
-        documentCount: 0,
+        documentCount: 1,
         wordInfo: [],
         wordCount: 0,
       })
       labelIndex = this._labelsAndInfo.length - 1
+    } else {
+      this._labelsAndInfo[labelIndex].documentCount++
     }
 
     return labelIndex
@@ -141,7 +142,7 @@ export class NaiveBayesClassifier {
       words[i] = words[i].toLowerCase()
       words[i] = words[i].trim()
 
-      if (this._useNegative && words[i-1] && words[i-1].match(/(n't|not)$/)) {
+      if (this._useNegative && i > 0 && words[i-1].match(/(n't|not)$/) != null) {
         if (words[i].match(/\W$/) != null) {
           words[i] = `NOT_${words[i]}`
         }

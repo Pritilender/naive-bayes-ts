@@ -8,8 +8,8 @@ interface Stats {
   total: number
 }
 
-const testDocs = 250 // * 2
-const trainDocs = 1000 // * 2
+const testDocs = 25 // * 2
+const trainDocs = 100 // * 2
 
 const readData = (funct: Function, folderPath: string, top: number = 25000) => {
   fs.readdirSync(folderPath).forEach(path => {
@@ -67,27 +67,27 @@ const args: Set<string> = new Set(process.argv.slice(2))
 const bayesClassifiers: { classifier: NaiveBayesClassifier, path: string }[] = [
   {
     classifier: new NaiveBayesClassifier(),
-    path: `${__dirname}/export/u-f${testDocs}.json`,
+    path: `${__dirname}/export/u-f${trainDocs}.json`,
   },
   {
     classifier: new NaiveBayesClassifier({presence: true}),
-    path: `${__dirname}/export/u-p${testDocs}.json`,
+    path: `${__dirname}/export/u-p${trainDocs}.json`,
   },
   {
     classifier: new NaiveBayesClassifier({useNegative: true}),
-    path: `${__dirname}/export/u-n-f${testDocs}.json`,
+    path: `${__dirname}/export/u-n-f${trainDocs}.json`,
   },
   {
     classifier: new NaiveBayesClassifier({presence: true, useNegative: true}),
-    path: `${__dirname}/export/u-n-p${testDocs}.json`,
+    path: `${__dirname}/export/u-n-p${trainDocs}.json`,
   },
   {
     classifier: new NaiveBayesClassifier({bigrams: true}),
-    path: `${__dirname}/export/b-f${testDocs}.json`,
+    path: `${__dirname}/export/b-f${trainDocs}.json`,
   },
   {
     classifier: new NaiveBayesClassifier({bigrams: true, presence: true}),
-    path: `${__dirname}/export/b-p${testDocs}.json`,
+    path: `${__dirname}/export/b-p${trainDocs}.json`,
   },
 ]
 
@@ -126,6 +126,8 @@ Usage:
     readData(trainClassifiers(bayesClassifiers.map(el => el.classifier)), `./data/train`, trainDocs)
 
     console.log('Done!')
+  } else {
+    bayesClassifiers.forEach(el => el.classifier.parseFile(el.path))
   }
 
   if (args.has('--write-out') || args.has('-w')) {
